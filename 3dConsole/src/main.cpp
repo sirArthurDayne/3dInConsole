@@ -82,14 +82,50 @@ public:
 	{
 		FillRect(0 ,0, ScreenWidth(), ScreenHeight(), olc::BLACK);
 
+		//ratio de cambio de velodidad
+		alfa += 1.50f * deltaTime;
+		
+		//rotacion en x,z
+		matRotationX.m[0][0] = 1.0f;
+		matRotationX.m[1][1] = cosf(alfa * 0.5f);
+		matRotationX.m[1][2] = sinf(alfa * 0.5f);
+		matRotationX.m[2][1] = -sinf(alfa * 0.5f);
+		matRotationX.m[2][2] = cosf(alfa * 0.5f);
+		matRotationX.m[3][3] = 1.0f;
+
+		//rotacionz
+		matRotationZ.m[0][0] = cosf(alfa);
+		matRotationZ.m[0][1] = sinf(alfa);
+		matRotationZ.m[1][0] = -sin(alfa);
+		matRotationZ.m[1][1] = cosf(alfa);
+		matRotationZ.m[2][2] = 1.0f;
+		matRotationZ.m[3][1] = 1.0f;
+
+
 		for (auto& mesh : meshCube.tris)
 		{
-			Triangle triproyection, triTranslate;
+			Triangle triproyection, triTranslate, triRotatedZ, triRotatedZX;
+
+			//rotacion desde el origen
+			//rotacion z
+			for (int i = 0; i < 3; i++)
+			{
+				MultiplyMatrixVector(mesh.points[i], triRotatedZ.points[i], matRotationZ);
+			}
+			//rotacion x
+			for (int i = 0; i < 3; i++)
+			{
+				MultiplyMatrixVector(triRotatedZ.points[i], triRotatedZX.points[i], matRotationX);
+			}
+
+
+			//convierte los valores de la proyeccion en z
+			triTranslate = triRotatedZX;
 			
-			triTranslate = mesh;
-			triTranslate.points[0].z = mesh.points[0].z + 3.0f;
-			triTranslate.points[1].z = mesh.points[1].z + 3.0f;
-			triTranslate.points[2].z = mesh.points[2].z + 3.0f;
+			for (int k = 0; k < 3; k++)
+			{
+				triTranslate.points[k].z = triRotatedZX.points[k].z + 3.0f;
+			}
 
 			//realizar calculos de proyeccion
 			for (int i = 0; i < 3; i++)
@@ -101,11 +137,11 @@ public:
 			for (int j = 0; j < 3; j++)
 			{
 				//le sumamos 1 para duplicar escala
-				triproyection.points[j].x += 1.0f;
-				triproyection.points[j].y += 1.0f;
+				triproyection.points[j].x += 1.20f;
+				triproyection.points[j].y += 1.20f;
 				//adaptar a escala a pantalla
-				triproyection.points[j].x *= 0.5f * (float) ScreenWidth();
-				triproyection.points[j].y *= 0.5f * (float) ScreenHeight();
+				triproyection.points[j].x *= 0.6f * (float) ScreenWidth();
+				triproyection.points[j].y *= 0.6f * (float) ScreenHeight();
 			}
 
 		
@@ -113,7 +149,7 @@ public:
 			DrawTriangle(triproyection.points[0].x, triproyection.points[0].y,//PLEFT 
 						 triproyection.points[1].x, triproyection.points[1].y,//PTOP
 						 triproyection.points[2].x, triproyection.points[2].y,//PRIGHT
-						 olc::GREEN);//color
+						 olc::Pixel( triproyection.points[0].x /ScreenWidth() * 255 + 40, triproyection.points[0].y / ScreenHeight() * 255 + 35, triproyection.points[0].z /10 *255  - 10));//color
 		}
 
 		return true;
@@ -122,7 +158,7 @@ private:
 
 	Triangle tri;
 	Matrix4x4 matProyection, matRotationX, matRotationZ;
-
+	float alfa = 0;//angulo acumulador
 	
 };
 
